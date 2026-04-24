@@ -162,7 +162,7 @@ const ProjectDetails = () => {
     );
   }
 
-  const projectUrl = `https://nehemia.com/project/${toSlug(project.title)}`;
+  const projectUrl = `${window.location.origin}/project/${toSlug(project.title)}`;
 
   return (
     <>
