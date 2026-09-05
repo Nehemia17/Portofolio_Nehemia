@@ -15,9 +15,28 @@ import {
   Cpu,
   Code,
   Figma,
+  Play,
+  Image as ImageIcon,
+  Video as VideoIcon,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { toSlug } from "../utils/slug";
+import { supabase } from "../supabase";
+
+const getEmbedUrl = (url) => {
+  if (!url) return null;
+  const ytMatch = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+  );
+  if (ytMatch) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
+  }
+  const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  if (loomMatch) {
+    return `https://www.loom.com/embed/${loomMatch[1]}`;
+  }
+  return null;
+};
 
 const TECH_ICONS = {
   React: Globe,
@@ -124,29 +143,52 @@ const ProjectDetails = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [activeMediaTab, setActiveMediaTab] = useState("image");
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const storedProjects = JSON.parse(localStorage.getItem("projects")) || [];
-    // Cari project berdasarkan slug yang di-generate dari Title
-    const selectedProject = storedProjects.find(
-      (p) => toSlug(p.title || p.Title) === slug,
-    );
+    const loadProject = async () => {
+      let storedProjects = JSON.parse(localStorage.getItem("projects")) || [];
+      let selectedProject = storedProjects.find(
+        (p) => toSlug(p.title || p.Title) === slug
+      );
 
-    if (selectedProject) {
-      const enhancedProject = {
-        ...selectedProject,
-        title: selectedProject.title || selectedProject.Title,
-        description: selectedProject.description || selectedProject.Description,
-        img: selectedProject.img || selectedProject.Img,
-        features: selectedProject.features || selectedProject.Features || [],
-        tech_stack: selectedProject.tech_stack || selectedProject.TechStack || [],
-        github: selectedProject.github || selectedProject.Github || "#",
-        figma: selectedProject.figma || selectedProject.Figma || null,
-        link: selectedProject.link || selectedProject.Link || "#",
-      };
-      setProject(enhancedProject);
-    }
+      // Fallback ambil langsung dari Supabase jika localStorage kosong
+      if (!selectedProject) {
+        try {
+          const { data } = await supabase.from("projects").select("*");
+          if (data && data.length > 0) {
+            localStorage.setItem("projects", JSON.stringify(data));
+            selectedProject = data.find(
+              (p) => toSlug(p.title || p.Title) === slug
+            );
+          }
+        } catch (err) {
+          console.error("Error fetching project from Supabase:", err);
+        }
+      }
+
+      if (selectedProject) {
+        const enhancedProject = {
+          ...selectedProject,
+          title: selectedProject.title || selectedProject.Title,
+          description: selectedProject.description || selectedProject.Description,
+          img: selectedProject.img || selectedProject.Img,
+          video_url: selectedProject.video_url || selectedProject.VideoUrl || selectedProject.video || null,
+          features: selectedProject.features || selectedProject.Features || [],
+          tech_stack: selectedProject.tech_stack || selectedProject.TechStack || [],
+          github: selectedProject.github || selectedProject.Github || "#",
+          figma: selectedProject.figma || selectedProject.Figma || null,
+          link: selectedProject.link || selectedProject.Link || "#",
+        };
+        setProject(enhancedProject);
+        if (enhancedProject.video_url && !enhancedProject.img) {
+          setActiveMediaTab("video");
+        }
+      }
+    };
+
+    loadProject();
   }, [slug]);
 
   if (!project) {
@@ -312,15 +354,83 @@ const ProjectDetails = () => {
               </div>
 
               <div className="space-y-6 md:space-y-10 animate-slideInRight">
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <img
-                    src={project.img}
-                    alt={project.title}
-                    className="w-full object-cover transform transition-transform duration-700 will-change-transform group-hover:scale-105"
-                    onLoad={() => setIsImageLoaded(true)}
-                  />
-                  <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/10 transition-colors duration-300 rounded-2xl" />
+                {/* Media Section: Tab Switcher (jika ada video) & Container */}
+                <div className="space-y-3">
+                  {project.video_url && (
+                    <div className="flex items-center gap-2 p-1 bg-white/5 backdrop-blur-md rounded-xl border border-white/10 w-fit">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMediaTab("image")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ${
+                          activeMediaTab === "image"
+                            ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-red-500/20"
+                            : "text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>Screenshot</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveMediaTab("video")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ${
+                          activeMediaTab === "video"
+                            ? "bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-red-500/20"
+                            : "text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        <VideoIcon className="w-3.5 h-3.5" />
+                        <span>Video Demo (1 Min)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {activeMediaTab === "video" && project.video_url ? (
+                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black aspect-video group">
+                      {getEmbedUrl(project.video_url) ? (
+                        <iframe
+                          src={getEmbedUrl(project.video_url)}
+                          title={`${project.title} Video Demo`}
+                          className="w-full h-full border-0 rounded-2xl"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          src={project.video_url}
+                          poster={project.img}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-full object-contain rounded-2xl bg-black"
+                        >
+                          Browser kamu tidak mendukung pemutaran video ini.
+                        </video>
+                      )}
+                      <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/10 transition-colors duration-300 rounded-2xl pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <img
+                        src={project.img}
+                        alt={project.title}
+                        className="w-full object-cover transform transition-transform duration-700 will-change-transform group-hover:scale-105"
+                        onLoad={() => setIsImageLoaded(true)}
+                      />
+                      <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/10 transition-colors duration-300 rounded-2xl pointer-events-none" />
+                      {project.video_url && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveMediaTab("video")}
+                          className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/70 backdrop-blur-md border border-white/20 text-white text-xs hover:bg-red-600/80 transition-all shadow-lg cursor-pointer"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white text-white" />
+                          <span>Watch Video Demo</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-white/[0.02] backdrop-blur-xl rounded-2xl p-8 border border-white/10 space-y-6 hover:border-white/20 transition-colors duration-300 group">

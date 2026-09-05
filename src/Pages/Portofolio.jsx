@@ -319,6 +319,7 @@ export default function FullWidthTabs() {
                       Description={project.description}
                       Link={project.link}
                       id={project.id}
+                      video_url={project.video_url}
                     />
                   </div>
                 ))}

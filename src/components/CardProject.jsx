@@ -1,9 +1,9 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ExternalLink, ArrowRight } from "lucide-react";
+import { ExternalLink, ArrowRight, Video } from "lucide-react";
 import { toSlug } from "../utils/slug";
 
-const CardProject = ({ Img, Title, Description, Link: ProjectLink, id }) => {
+const CardProject = ({ Img, Title, Description, Link: ProjectLink, id, video_url }) => {
   const navigate = useNavigate();
 
   const handleLiveDemo = (e) => {
@@ -35,6 +35,12 @@ const CardProject = ({ Img, Title, Description, Link: ProjectLink, id }) => {
               alt={Title}
               className="w-full h-full object-cover aspect-[16/8] transform group-hover:scale-105 transition-transform duration-500"
             />
+            {video_url && (
+              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md border border-white/15 text-orange-400 text-xs font-medium shadow-md">
+                <Video className="w-3.5 h-3.5" />
+                <span>Video Demo</span>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 space-y-3">

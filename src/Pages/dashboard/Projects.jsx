@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Github,
   Pencil,
+  Video,
 } from "lucide-react";
 
 const Card = ({ children, className = "" }) => (
@@ -112,6 +113,12 @@ const ProjectCard = ({ project, onDelete, onEdit }) => {
             ))}
           </div>
         )}
+        {project.video_url && (
+          <div className="flex items-center gap-1.5 mb-3 text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded-lg w-fit">
+            <Video className="w-3.5 h-3.5" />
+            <span>Video Demo</span>
+          </div>
+        )}
         <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-white/8">
           <div className="flex gap-2">
             {project.link && (
@@ -204,6 +211,7 @@ const ProjectForm = ({
     Link: initial?.link || initial?.Link || "",
     Github: initial?.github || initial?.Github || "",
     Figma: initial?.figma || initial?.Figma || "",
+    VideoUrl: initial?.video_url || initial?.VideoUrl || initial?.video || "",
   });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(initial?.img || initial?.Img || null);
@@ -279,6 +287,14 @@ const ProjectForm = ({
           onChange={set("Figma")}
           placeholder="https://figma.com/file/..."
         />
+        <div className="sm:col-span-2">
+          <InputField
+            label="Video Demo URL (Direct MP4, YouTube, or Loom)"
+            value={form.VideoUrl}
+            onChange={set("VideoUrl")}
+            placeholder="e.g. https://example.com/demo.mp4 or https://youtu.be/..."
+          />
+        </div>
 
         <div className="sm:col-span-2 space-y-1.5">
           <label className="text-xs text-red-300/70 uppercase tracking-wider font-medium">
@@ -389,6 +405,7 @@ export default function Projects() {
         link: form.Link,
         github: form.Github,
         figma: form.Figma,
+        video_url: form.VideoUrl || null,
       });
 
       if (error) throw error;
@@ -424,6 +441,7 @@ export default function Projects() {
           link: form.Link,
           github: form.Github,
           figma: form.Figma,
+          video_url: form.VideoUrl || null,
         })
         .eq("id", editProject.id);
 
