@@ -220,7 +220,7 @@ const AboutPage = () => {
               data-aos-duration="1500"
             >
         Saya adalah Nehemia Dheadema Mareten, seorang Creative Technologist dan mahasiswa Digital Forensics dari UBSI Pontianak. Fokus utama saya terletak pada Front-End Development, di mana saya menggabungkan presisi teknis dengan kreativitas visual untuk membangun antarmuka digital yang 'hidup'.<br /><br />
-        Sebagai seorang pengembang Full-stack dan desainer UI/UX, saya selalu berupaya melampaui batas standar dalam setiap proyek—mulai dari sistem monitoring Agrosense AIoT hingga aplikasi fitness interaktif. Saya percaya bahwa pengalaman digital yang luar biasa lahir dari keseimbangan antara kode yang bersih dan desain yang intuitif. Saya siap memberikan solusi terbaik untuk setiap tantangan teknologi yang ada.
+        Sebagai seorang pengembang Full-stack dan desainer UI/UX, saya selalu berupaya melampaui batas standar dalam setiap proyek mulai dari sistem monitoring Agrosense AIoT hingga aplikasi fitness interaktif. Saya percaya bahwa pengalaman digital yang luar biasa lahir dari keseimbangan antara kode yang bersih dan desain yang intuitif. Saya siap memberikan solusi terbaik untuk setiap tantangan teknologi yang ada.
                   </p>
 
                {/* Quote Section */}
