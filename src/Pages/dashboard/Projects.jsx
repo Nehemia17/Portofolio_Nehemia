@@ -215,6 +215,7 @@ const ProjectForm = ({
   });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(initial?.img || initial?.Img || null);
+  const [videoFile, setVideoFile] = useState(null);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -225,11 +226,17 @@ const ProjectForm = ({
     setPreview(URL.createObjectURL(f));
   };
 
+  const handleVideoFileChange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setVideoFile(f);
+  };
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(form, file);
+        onSubmit(form, file, videoFile);
       }}
       className="p-5 sm:p-6 space-y-4"
     >
@@ -287,12 +294,35 @@ const ProjectForm = ({
           onChange={set("Figma")}
           placeholder="https://figma.com/file/..."
         />
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 space-y-2">
+          <label className="text-xs text-red-300/70 uppercase tracking-wider font-medium">
+            Project Video Demo (Upload File or Enter Link)
+          </label>
+          <label className="flex items-center gap-4 w-full bg-[#0d0d22] border border-dashed border-white/15 rounded-xl px-4 py-3.5 cursor-pointer hover:border-red-500/40 hover:bg-white/4 transition-all">
+            <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 text-orange-400 shrink-0">
+              <Video className="w-5 h-5" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm text-gray-300 truncate font-medium">
+                {videoFile ? videoFile.name : (form.VideoUrl ? "Video file / URL set" : "Upload Video from Device (MP4 / WebM max 1 min)")}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB selected` : "Click to select a video file from your computer"}
+              </p>
+            </div>
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/ogg"
+              onChange={handleVideoFileChange}
+              className="hidden"
+            />
+          </label>
+
           <InputField
-            label="Video Demo URL (Direct MP4, YouTube, or Loom)"
+            label="Or Enter Video URL (Alternative)"
             value={form.VideoUrl}
             onChange={set("VideoUrl")}
-            placeholder="e.g. https://example.com/demo.mp4 or https://youtu.be/..."
+            placeholder="e.g. https://.../video.mp4 or YouTube link"
           />
         </div>
 
@@ -386,11 +416,28 @@ export default function Projects() {
     return data.publicUrl;
   };
 
-  const handleCreate = async (form, file) => {
+  const uploadVideo = async (f) => {
+    const cleanName = f.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const fileName = `video-${Date.now()}-${cleanName}`;
+    const { error } = await supabase.storage.from("project-images").upload(fileName, f, {
+      cacheControl: "3600",
+      upsert: false
+    });
+    if (error) throw error;
+    const { data } = supabase.storage
+      .from("project-images")
+      .getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
+  const handleCreate = async (form, file, videoFile) => {
     setUploading(true);
     try {
       let imgUrl = "";
       if (file) imgUrl = await uploadImage(file);
+
+      let videoUrl = form.VideoUrl || null;
+      if (videoFile) videoUrl = await uploadVideo(videoFile);
       
       const { error } = await supabase.from("projects").insert({
         title: form.Title,
@@ -405,7 +452,7 @@ export default function Projects() {
         link: form.Link,
         github: form.Github,
         figma: form.Figma,
-        video_url: form.VideoUrl || null,
+        video_url: videoUrl,
       });
 
       if (error) throw error;
@@ -420,11 +467,14 @@ export default function Projects() {
     }
   };
 
-  const handleEdit = async (form, file) => {
+  const handleEdit = async (form, file, videoFile) => {
     setUploading(true);
     try {
       let imgUrl = editProject.img || "";
       if (file) imgUrl = await uploadImage(file);
+
+      let videoUrl = form.VideoUrl || editProject.video_url || null;
+      if (videoFile) videoUrl = await uploadVideo(videoFile);
 
       const { error } = await supabase
         .from("projects")
@@ -441,7 +491,7 @@ export default function Projects() {
           link: form.Link,
           github: form.Github,
           figma: form.Figma,
-          video_url: form.VideoUrl || null,
+          video_url: videoUrl,
         })
         .eq("id", editProject.id);
 

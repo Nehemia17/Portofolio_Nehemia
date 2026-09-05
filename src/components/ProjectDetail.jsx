@@ -25,13 +25,14 @@ import { supabase } from "../supabase";
 
 const getEmbedUrl = (url) => {
   if (!url) return null;
-  const ytMatch = url.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+  const cleanUrl = url.trim();
+  const ytMatch = cleanUrl.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/
   );
   if (ytMatch) {
     return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
   }
-  const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+  const loomMatch = cleanUrl.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
   if (loomMatch) {
     return `https://www.loom.com/embed/${loomMatch[1]}`;
   }
