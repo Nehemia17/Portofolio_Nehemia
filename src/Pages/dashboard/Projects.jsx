@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
+import Swal from "sweetalert2";
 import {
   Plus,
   Trash2,
@@ -216,6 +217,7 @@ const ProjectForm = ({
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(initial?.img || initial?.Img || null);
   const [videoFile, setVideoFile] = useState(null);
+  const [videoMetadata, setVideoMetadata] = useState(null);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -229,7 +231,52 @@ const ProjectForm = ({
   const handleVideoFileChange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    setVideoFile(f);
+
+    // 1. Validasi Ukuran File (Maksimal 50 MB)
+    const maxSizeBytes = 50 * 1024 * 1024;
+    if (f.size > maxSizeBytes) {
+      Swal.fire({
+        icon: "error",
+        title: "Ukuran File Terlalu Besar",
+        html: `Ukuran file video <b>(${(f.size / (1024 * 1024)).toFixed(1)} MB)</b> melebihi batas maksimal <b>50 MB</b>.<br/>Silakan pilih file yang lebih kecil atau kompres terlebih dahulu.`,
+        background: "#0d0d22",
+        color: "#ffffff",
+        confirmButtonColor: "#dc2626",
+      });
+      e.target.value = "";
+      setVideoFile(null);
+      setVideoMetadata(null);
+      return;
+    }
+
+    // 2. Validasi Durasi Video (Maksimal 60 Detik / 1 Menit)
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = URL.createObjectURL(f);
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      const duration = Math.round(video.duration);
+      if (duration > 61) {
+        Swal.fire({
+          icon: "warning",
+          title: "Durasi Video Terlalu Panjang",
+          html: `Durasi video <b>(${duration} detik)</b> melebihi batas maksimal <b>60 detik (1 menit)</b>.<br/>Harap pilih video pendek/cuplikan berdurasi maksimal 1 menit.`,
+          background: "#0d0d22",
+          color: "#ffffff",
+          confirmButtonColor: "#dc2626",
+        });
+        e.target.value = "";
+        setVideoFile(null);
+        setVideoMetadata(null);
+        return;
+      }
+
+      setVideoFile(f);
+      setVideoMetadata({
+        sizeMB: (f.size / (1024 * 1024)).toFixed(1),
+        durationSec: duration,
+      });
+    };
   };
 
   return (
@@ -295,19 +342,38 @@ const ProjectForm = ({
           placeholder="https://figma.com/file/..."
         />
         <div className="sm:col-span-2 space-y-2">
-          <label className="text-xs text-red-300/70 uppercase tracking-wider font-medium">
-            Project Video Demo (Upload File or Enter Link)
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-red-300/70 uppercase tracking-wider font-medium">
+              Project Video Demo (Upload File or Enter Link)
+            </label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-300 font-medium">
+                Maks. 50 MB
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 font-medium">
+                Maks. 60 Detik (1 Menit)
+              </span>
+            </div>
+          </div>
+
           <label className="flex items-center gap-4 w-full bg-[#0d0d22] border border-dashed border-white/15 rounded-xl px-4 py-3.5 cursor-pointer hover:border-red-500/40 hover:bg-white/4 transition-all">
             <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 text-orange-400 shrink-0">
               <Video className="w-5 h-5" />
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-sm text-gray-300 truncate font-medium">
-                {videoFile ? videoFile.name : (form.VideoUrl ? "Video file / URL set" : "Upload Video from Device (MP4 / WebM max 1 min)")}
+                {videoFile ? videoFile.name : (form.VideoUrl ? "Video file / URL configured" : "Upload Video from Device")}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB selected` : "Click to select a video file from your computer"}
+              <p className="text-xs mt-0.5">
+                {videoMetadata ? (
+                  <span className="text-emerald-400 font-medium">
+                    ✓ Valid • {videoMetadata.sizeMB} MB • Durasi: {videoMetadata.durationSec}s
+                  </span>
+                ) : (
+                  <span className="text-gray-500">
+                    MP4 / WebM • Maks. 50 MB & 60 detik
+                  </span>
+                )}
               </p>
             </div>
             <input
